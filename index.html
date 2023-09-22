@@ -144,7 +144,7 @@
             }
         }
 
-        // * Trial composition * //
+        // * Rating trial * //
         var scale = [
             "<b>0</b><br>Low similarity", 
             "<b>1</b>", 
@@ -259,14 +259,12 @@
             },            
             on_finish: function(){                
                 // get data values
-                var data = {experiment:"sceneWheel_similarityJudgment",
-                            repo:"sceneWheel_similarityJudgment",                            
-                            turkID: turkInfo,                            
-                            wheel_info:[main_wheel, prac_wheel],
-                            data:jsPsych.data.get().values(),
-                            browser_info:browser_info,
-                            interaction_data:jsPsych.data.getInteractionData().values(),
-                            exp_condition:e_cond}                
+                var data = {
+                    experiment:"sceneWheel_similarityJudgment",
+                    repo:"sceneWheel_similarityJudgment",   
+                    data:jsPsych.data.get().values(),
+                    interaction_data:jsPsych.data.getInteractionData().values()
+                    }                
 
                 // send data to firebase                      
                 var tmp = new Uint32Array(1);
@@ -302,24 +300,24 @@
 
         // * timeline fill up * //  
         timeline = [];
-        timeline.push({
-            type: 'fullscreen',
-            fullscreen_mode: true
-        });        
-        timeline.push(instruction1);        
-        timeline.push(judgment_prac);
-        timeline.push(instruction2);
-        for (b=1; b<n_block; b++) {          
-            timeline.push(eval('judgment_main'+(b)));
-            timeline.push(eval('inter_break'+(b)));
-        }
-        timeline.push(eval('judgment_main'+n_block));        
-        timeline.push(dem_info);
+        // timeline.push({
+        //     type: 'fullscreen',
+        //     fullscreen_mode: true
+        // });        
+        // timeline.push(instruction1);        
+        // timeline.push(judgment_prac);
+        // timeline.push(instruction2);
+        // for (b=1; b<n_block; b++) {          
+        //     timeline.push(eval('judgment_main'+(b)));
+        //     timeline.push(eval('inter_break'+(b)));
+        // }
+        // timeline.push(eval('judgment_main'+n_block));        
+        // timeline.push(dem_info);
         timeline.push(save_data);
-        timeline.push({
-            type: 'fullscreen',
-            fullscreen_mode: false
-        });
+        // timeline.push({
+        //     type: 'fullscreen',
+        //     fullscreen_mode: false
+        // });
         timeline.push(debrief_page);      
         
        
