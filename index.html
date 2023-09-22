@@ -158,7 +158,7 @@
         var pair_judge ={
             type: 'html-likert',
             questions: [{
-                name: 'thisPair',
+                name: 'similarity_score',
                 stimulus_L: jsPsych.timelineVariable('stim_path_left'),
                 stimulus_R: jsPsych.timelineVariable('stim_path_right'),                
                 labels: scale,                
@@ -307,13 +307,13 @@
         // });        
         timeline.push(instruction1);        
         timeline.push(judgment_prac);
-        // timeline.push(instruction2);
-        // for (b=1; b<n_block; b++) {          
-        //     timeline.push(eval('judgment_main'+(b)));
-        //     timeline.push(eval('inter_break'+(b)));
-        // }
-        // timeline.push(eval('judgment_main'+n_block));        
-        // timeline.push(dem_info);
+        timeline.push(instruction2);
+        for (b=1; b<n_block; b++) {          
+            timeline.push(eval('judgment_main'+(b)));
+            timeline.push(eval('inter_break'+(b)));
+        }
+        timeline.push(eval('judgment_main'+n_block));        
+        timeline.push(dem_info);
         timeline.push(save_data);
         // timeline.push({
         //     type: 'fullscreen',
