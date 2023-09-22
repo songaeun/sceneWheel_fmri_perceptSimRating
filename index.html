@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang = 'en'>
+    <head>
+        <title>Experiment - Scene similarity</title>
+        <style>                                   
+                   
+        </style>
+        <script src='jspsych-6.2.0/jspsych.js'></script>
+        <script src="https://code.jquery.com/jquery-1.11.0.min.js"></script>        
+        <script src="https://cdn.jsdelivr.net/npm/bowser@2.5.3/es5.min.js"></script>        
+        <script src="js_library/modernizr-custom.js"></script>  
+        <script src="js_library/underscore-min.js"></script> 
+        <script src="js_library/factorial_noRandom.js"></script>      
+        <script src="jspsych-6.2.0/plugins/jspsych-fullscreen.js"></script>             
+        <script src='jspsych-6.2.0/plugins/jspsych-html-likert.js'></script> 
+        <script src="jspsych-6.2.0/plugins/jspsych-external-html.js"></script>
+        <script src="jspsych-6.2.0/plugins/jspsych-html-button-response.js"></script>
+        <script src="jspsych-6.2.0/plugins/jspsych-html-keyboard-response.js"></script>
+        <script src="jspsych-6.2.0/plugins/jspsych-survey-html-form.js"></script>
+        <link href='jspsych-6.2.0/css/jspsych.css' rel='stylesheet' type="text/css">           
+    </head>
+    <body></body>
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+        // TODO: Add SDKs for Firebase products that you want to use
+        // https://firebase.google.com/docs/web/setup#available-libraries
+      
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyDBKUgBtkm00Zwk28xpGGphJiXXwS0_WE8",
+          authDomain: "scenewheel-fmri-simjudgment.firebaseapp.com",
+          databaseURL: "https://scenewheel-fmri-simjudgment-default-rtdb.firebaseio.com",
+          projectId: "scenewheel-fmri-simjudgment",
+          storageBucket: "scenewheel-fmri-simjudgment.appspot.com",
+          messagingSenderId: "28273652800",
+          appId: "1:28273652800:web:7ae4163e4623730bbb1ba5"
+        };
+      
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+    </script>
+
+    <script>    
+        // ***************** Condition setup ****************** //
+        const img_host = 'stimuli_webp/';
+        var main_wheel = ['017','083','090','104'];
+        var prac_wheel = '081';     
+        // -- practice condition --//
+        var p_cond = [ 
+            {stim_list:[0  ,0  ]}, // 0 deg difference
+            {stim_list:[120,150]}, // 30 deg
+            {stim_list:[90 ,150]}, // 60 deg
+            {stim_list:[240,270]}, // 60 deg
+            {stim_list:[90 ,180]}, // 90 deg   
+            {stim_list:[180,300]}, // 120 deg       
+            {stim_list:[120,270]}, // 150 deg
+            {stim_list:[30 ,210]}, // 180 deg
+        ];
+        var left_item = _.shuffle(Array(Math.floor(p_cond.length/2)).fill(0).concat(Array(Math.ceil(p_cond.length/2)).fill(1)));
+        for (var i=0; i<p_cond.length; i++){   
+            p_cond[i].wheel = prac_wheel;         
+            p_cond[i].left_item_idx = left_item[i];            
+            p_cond[i].stim_path_left = img_host+prac_wheel+'/'+("00000"+p_cond[i].stim_list[left_item[i]]).slice(-6)+'.webp';
+            p_cond[i].stim_path_right = img_host+prac_wheel+'/'+("00000"+p_cond[i].stim_list[(left_item[i]+1)%2]).slice(-6)+'.webp';
+        };
+        // -- main condition -- //
+        var e_cond = [];  
+        for(var w of main_wheel){
+            var pair = []; // prepare all possible pairs
+            var img_num = _.range(0,360,30);
+            var identical_pair = _.sample(img_num,2); // catch trials
+            pair.push([identical_pair[0],identical_pair[0]]);
+            pair.push([identical_pair[1],identical_pair[1]]);        
+            for (var i = 0; i < img_num.length - 1; i++) {            
+                for (var j = i + 1; j < img_num.length; j++) {
+                    pair.push([img_num[i], img_num[j]]);
+                }
+            };        
+            // select one to be preseted left
+            var left_item = _.shuffle(Array(pair.length/2).fill(0).concat(Array(pair.length/2).fill(1)));
+            // specify path
+            for (var i=0; i<pair.length; i++){
+                e_cond.push({
+                    wheel: w,    
+                    left_item_idx: left_item[i],
+                    stim_path_left: img_host+w+'/'+("00000"+pair[i][left_item[i]]).slice(-6)+'.webp',
+                    stim_path_right: img_host+w+'/'+("00000"+pair[i][(left_item[i]+1)%2]).slice(-6)+'.webp'
+                })
+            };
+        }    
+        // divide into blocks
+        var n_block = main_wheel.length;
+        var e_cond = _.chunk(e_cond, e_cond.length/n_block);
+
+        
+        // * preload images *//        
+        var stimuli = [];
+        for (i=0; i <p_cond.length; i++){
+            stimuli.push(
+                p_cond[i].stim_path_left,
+                p_cond[i].stim_path_right,
+            );
+        }
+        for (b=0; b<n_block; b++){
+            for (i=0; i <e_cond[b].length; i++){
+                stimuli.push(
+                    e_cond[b][i].stim_path_left,
+                    e_cond[b][i].stim_path_right,
+                );
+            };
+        };
+        
+        // ************** Display set up *************** //              
+
+        // * Instruction * //  
+        var instruction1 = {
+            type: 'html-button-response',
+            stimulus: '<p style="color: black; font-size: 20px;">'+
+                '<b>Welcome to the experiment!</b><br><br>'+
+                'In this experiment, you will rate the similarity of image pairs.<br>'+
+                'Carefully look at the images and rate how similar they look to each other.<br>'+
+                'Click the button to start the practice block. There will be '+p_cond.length+' practie trials.</p>',               
+            choices: ['Start Practice'],                  
+            data: {disp_type: 'instrcution-practice'}
+        };    
+        var n_trials = e_cond[0].length;   
+        var instruction2 = {
+            type: 'html-button-response',
+            stimulus: '<p style="color: black; font-size: 20px;">'+
+                "Practice trials are done. Now let's move onto the main session.<br><br>"+
+                'In the main session, you will perform the same similarity judgment task across '+n_block+' blocks.<br>'+
+                'There will be '+n_trials+' trials in each block, and a short break will be given after each block.</p>',
+            choices: ['Start Main'],                  
+            data: {disp_type: 'instruction-parctice'}
+        };
+        for (var i=1; i<n_block; i++){
+            this['inter_break'+i] = {
+                type: 'html-button-response',
+                stimulus: `<p style="font-size: 20px;">Block ${i} is just done! Now you have ${n_block-i} block(s) to go.</br>
+                Take a short break and press the button to start the next block.</p>`,
+                choices: ['Start'],
+                data: {disp_type: 'break'}
+            }
+        }
+
+        // * Trial composition * //
+        var scale = [
+            "<b>0</b><br>Low similarity", 
+            "<b>1</b>", 
+            "<b>2</b>", 
+            "<b>3</b>", 
+            "<b>4</b>",
+            "<b>5</b><br>High similarity"
+        ];        
+        var pair_judge ={
+            type: 'html-likert',
+            questions: [{
+                name: 'thisPair',
+                stimulus_L: jsPsych.timelineVariable('stim_path_left'),
+                stimulus_R: jsPsych.timelineVariable('stim_path_right'),                
+                labels: scale,                
+                required: true
+            }],            
+            scale_width: 500,
+            data: {
+                disp_type: 'likert_display',          
+                img1: jsPsych.timelineVariable('stim_path_left'),
+                img2: jsPsych.timelineVariable('stim_path_right'),                                   
+            },
+            on_finish: function() {
+                // progress bar
+                var curr_progress_bar_value = jsPsych.getProgressBarCompleted();
+                jsPsych.setProgressBar(curr_progress_bar_value + (1/(n_trials*4+8)));
+            }
+        }
+
+        var judgment_prac = {
+            timeline: [pair_judge],
+            timeline_variables: p_cond,
+            randomize_order: true
+        }
+        var judgment_main1 = {
+            timeline: [pair_judge],
+            timeline_variables: e_cond[0],
+            randomize_order: true
+        }
+        var judgment_main2 = {
+            timeline: [pair_judge],
+            timeline_variables: e_cond[1],
+            randomize_order: true
+        }
+        var judgment_main3 = {
+            timeline: [pair_judge],
+            timeline_variables: e_cond[2],
+            randomize_order: true
+        }
+        var judgment_main4 = {
+            timeline: [pair_judge],
+            timeline_variables: e_cond[3],
+            randomize_order: true
+        }
+
+        // * demographic page  * //
+        // definiting response scales that can be used.
+        var gender_options = ['Male', 'Female', 'Other'];
+        var handed_option = ['Right', 'Left'];
+        var page_2_options = ["Strongly Disagree", "Disagree", "Somewhat Disagree", "Neural", "Somewhat Agree", "Agree", "Strongly Agree"];
+        var dem_info = {
+            type: 'survey-html-form',
+            preamble: '<p><b>Task is done! Now we would like to collect the basic information below.</b></p>',
+            html: '<p style="font-size:12pt;"> Gender: '+
+                '<input name="gender" type="radio" value="male"  /><label for="male">Male</label>'+
+                '<input name="gender" type="radio" value="female"  /><label for="female">Female</label>'+
+                '<input name="gender" type="radio" value="other"  /><label for="other">Other</label></br>'+
+                // age
+                'Age: <input name="age" type="text"/></br>'+
+                // handedness
+                'Handedness: '+
+                '<input name="hand" type="radio" value="right"  /><label for="right">Right</label>'+
+                '<input name="hand" type="radio" value="left"  /><label for="left">Left</label></br></br>'+
+                'Please respond to the following quetions by checking "Yes" or "No": </br>'+
+                // lenses
+                '</br>Do you wear corrective lenses?: '+
+                '<input name="lense" type="radio" value="yes" /><label for="yes">Yes</label>'+
+                '<input name="lense" type="radio" value="no" /><label for="no">No</label>'+
+                '</br>If yes, specify glasses or contacts:  <input name="lensetype" type="text" /></br>'+                
+                // hearing aids
+                '</br>Do you use hearing aid?: '+
+                '<input name="hear" type="radio" value="yes" /><label for="yes">Yes</label>'+
+                '<input name="hear" type="radio" value="no" /><label for="no">No</label>'+
+                '</br>If yes, please specify what kinds: <input name="hearaidtype" type="text" /></br>'+
+                // brain malfunction
+                '</br>Do you have any known brain malfunctions?: '+
+                '<input name="brain" type="radio" value="yes" /><label for="yes">Yes</label>'+
+                '<input name="brain" type="radio" value="no" /><label for="no">No</label>'+
+                '</br>If yes, please specify type and location: <input name="brainmaltype" type="text" /></br>'+
+                // color blindness
+                '</br>Do you experience color blindness?: '+
+                '<input name="color" type="radio" value="yes" /><label for="yes">Yes</label>'+
+                '<input name="color" type="radio" value="no" /><label for="no">No</label>'+
+                // neurological conditions
+                '</br>Do you have (or have you had) any neurological conditions?: '+
+                '<input name="neuro" type="radio" value="yes" /><label for="yes">Yes</label>'+
+                '<input name="neuro" type="radio" value="no" /><label for="no">No</label></br></p>',
+            data: {
+                disp_type: 'demographic_info'
+            }
+        }
+
+        // * save data * //
+        var save_data = {
+            type: 'html-keyboard-response',
+            stimulus: '<p>We are saving your data, please stay on this page.</p>',
+            choices: jsPsych.NO_KEYS,
+            trial_duration: 3000,
+            data: { // create confirmation code with data saving
+                conf_code: Math.floor(1000 + Math.random() * 9000)
+            },            
+            on_finish: function(){                
+                // get data values
+                var data = {experiment:"sceneWheel_similarityJudgment",
+                            repo:"sceneWheel_similarityJudgment",                            
+                            turkID: turkInfo,                            
+                            wheel_info:[main_wheel, prac_wheel],
+                            data:jsPsych.data.get().values(),
+                            browser_info:browser_info,
+                            interaction_data:jsPsych.data.getInteractionData().values(),
+                            exp_condition:e_cond}                
+
+                // send data to firebase                      
+                var tmp = new Uint32Array(1);
+                tmp = window.crypto.getRandomValues(tmp)
+                var dbpath = firebase.auth().currentUser.uid+'/'+tmp;
+                firebase.database().ref(dbpath).set({
+                    experiment:"sceneWheel_fmri_simJudgment",
+                    repo:"sceneWheel_fmri_simJudgment",
+                    data:jsPsych.data.get().values(),
+                    browser_info:browser_info,
+                    interaction_data:jsPsych.data.getInteractionData().values(),
+                    date: Date()
+                });                
+            }           
+        }
+        
+              
+        // * Debriefing form * //            
+                  
+        var debrief_page = {
+            type: 'html-keyboard-response',
+            stimulus: function(){                            
+                var html = 
+                '<p area-selected="font-size:15px;"> You are done! Your confirmation code is: '+
+                '<b>'+save_data.data.conf_code+'</b>'+
+                '<p>Thank you for participating!</p>'+                          
+                '<embed src="debriefing/Debriefing.pdf" style="width:80vw; height:70vh;"></embed>'
+                return html;
+            },
+            choices: jsPsych.NO_KEYS,        
+            data: {disp_type: 'debriefing_page'}            
+        }              
+
+        // * timeline fill up * //  
+        timeline = [];
+        timeline.push({
+            type: 'fullscreen',
+            fullscreen_mode: true
+        });        
+        timeline.push(instruction1);        
+        timeline.push(judgment_prac);
+        timeline.push(instruction2);
+        for (b=1; b<n_block; b++) {          
+            timeline.push(eval('judgment_main'+(b)));
+            timeline.push(eval('inter_break'+(b)));
+        }
+        timeline.push(eval('judgment_main'+n_block));        
+        timeline.push(dem_info);
+        timeline.push(save_data);
+        timeline.push({
+            type: 'fullscreen',
+            fullscreen_mode: false
+        });
+        timeline.push(debrief_page);      
+        
+       
+        jsPsych.init({                   
+            timeline: timeline,           
+            preload_images: stimuli,  
+            show_progress_bar: true, 
+            auto_update_progress_bar: false  
+        });      
+       
+    
+
+   </script>
+
+</html>
+    
+
+    
+
+       
+
