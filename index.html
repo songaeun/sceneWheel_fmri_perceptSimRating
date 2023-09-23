@@ -94,6 +94,8 @@
         // divide into blocks
         var n_block = main_wheel.length;
         var e_cond = _.chunk(e_cond, e_cond.length/n_block);
+        var test_order1 = _.shuffle([0,1,2,3]);
+        var test_order2 = _.shuffle([0,1,2,3]);
 
         
         // * preload images *//        
@@ -127,19 +129,20 @@
             data: {disp_type: 'instrcution-practice'}
         };    
         var n_trials = e_cond[0].length;   
+        var n_total_blocks = n_block*2;
         var instruction2 = {
             type: 'html-button-response',
             stimulus: '<p style="color: black; font-size: 20px;">'+
-                "Practice trials are done. Now let's move onto the main session.<br><br>"+
-                'In the main session, you will perform the same similarity judgment task across '+n_block+' blocks.<br>'+
+                "Practice trials are done. Now let's move on to the main session.<br><br>"+
+                'In the main session, you will perform the same similarity judgment task across '+n_total_blocks+' blocks.<br>'+
                 'There will be '+n_trials+' trials in each block, and a short break will be given after each block.</p>',
             choices: ['Start Main'],                  
             data: {disp_type: 'instruction-parctice'}
         };
-        for (var i=1; i<n_block; i++){
+        for (var i=1; i<n_total_blocks; i++){
             this['inter_break'+i] = {
                 type: 'html-button-response',
-                stimulus: `<p style="font-size: 20px;">Block ${i} is just done! Now you have ${n_block-i} block(s) to go.</br>
+                stimulus: `<p style="font-size: 20px;">Block ${i} is just done! Now you have ${n_total_blocks-i} block(s) to go.</br>
                 Take a short break and press the button to start the next block.</p>`,
                 choices: ['Start'],
                 data: {disp_type: 'break'}
@@ -184,22 +187,42 @@
         }
         var judgment_main1 = {
             timeline: [pair_judge],
-            timeline_variables: e_cond[0],
+            timeline_variables: e_cond[test_order1[0]],
             randomize_order: true
         }
         var judgment_main2 = {
             timeline: [pair_judge],
-            timeline_variables: e_cond[1],
+            timeline_variables: e_cond[test_order1[1]],
             randomize_order: true
         }
         var judgment_main3 = {
             timeline: [pair_judge],
-            timeline_variables: e_cond[2],
+            timeline_variables: e_cond[test_order1[2]],
             randomize_order: true
         }
         var judgment_main4 = {
             timeline: [pair_judge],
-            timeline_variables: e_cond[3],
+            timeline_variables: e_cond[test_order1[3]],
+            randomize_order: true
+        }
+        var judgment_main5 = {
+            timeline: [pair_judge],
+            timeline_variables: e_cond[test_order2[0]],
+            randomize_order: true
+        }
+        var judgment_main6 = {
+            timeline: [pair_judge],
+            timeline_variables: e_cond[test_order2[1]],
+            randomize_order: true
+        }
+        var judgment_main7 = {
+            timeline: [pair_judge],
+            timeline_variables: e_cond[test_order2[2]],
+            randomize_order: true
+        }
+        var judgment_main8 = {
+            timeline: [pair_judge],
+            timeline_variables: e_cond[test_order2[3]],
             randomize_order: true
         }
 
@@ -308,11 +331,11 @@
         timeline.push(instruction1);        
         timeline.push(judgment_prac);
         timeline.push(instruction2);
-        for (b=1; b<n_block; b++) {          
+        for (b=1; b<n_total_blocks; b++) {          
             timeline.push(eval('judgment_main'+(b)));
             timeline.push(eval('inter_break'+(b)));
         }
-        timeline.push(eval('judgment_main'+n_block));        
+        timeline.push(eval('judgment_main'+n_total_blocks));        
         timeline.push(dem_info);
         timeline.push(save_data);
         // timeline.push({
